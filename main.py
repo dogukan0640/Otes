@@ -1,45 +1,36 @@
 
-import time, schedule, subprocess, requests, os, sys
+import schedule, time, subprocess, os, sys, requests
 
-TOKEN = "7744478523:AAEtRJar6uF7m0cxKfQh7r7TltXYxWwtmm0"
-CHAT  = "1009868232"
+TOKEN="7744478523:AAEtRJar6uF7m0cxKfQh7r7TltXYxWwtmm0"
+CHAT="1009868232"
+def tg(m): requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                         data={"chat_id":CHAT,"text":m})
 
-def tg(msg):
-    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-                  data={"chat_id": CHAT, "text": msg})
+def run(cmd): subprocess.run([sys.executable, cmd], check=True)
 
 def ensure_model():
     if not os.path.exists("model.pkl"):
-        tg("[BOT] model.pkl bulunamadı, eğitim başlatılıyor...")
-        subprocess.run([sys.executable,"train_model.py"],check=True)
-
-def cycle_analysis():
+        run("train_model.py")
+def analysis():
     try:
-        subprocess.run([sys.executable,"data_collector.py"],check=True)
-        subprocess.run([sys.executable,"multi_timeframe_analysis.py"],check=True)
+        run("data_collector.py")
+        run("multi_timeframe_analysis.py")
         ensure_model()
-        subprocess.run([sys.executable,"predictor.py"],check=True)
+        run("predictor.py")
     except Exception as e:
-        tg(f"[HATA] analysis cycle\n{e}")
-
-def cycle_training():
-    try:
-        subprocess.run([sys.executable,"train_model.py"],check=True)
-        tg("[AI] Model yeniden eğitildi.")
-    except Exception as e:
-        tg(f"[HATA] training\n{e}")
-
-def cycle_watcher():
-    try:
-        subprocess.run([sys.executable,"trade_result_watcher.py"],check=True)
-    except Exception as e:
-        tg(f"[HATA] watcher\n{e}")
+        tg(f"[HATA analysis] {e}")
+def training():
+    try: run("train_model.py")
+    except Exception as e: tg(f"[HATA training] {e}")
+def watcher():
+    try: run("trade_result_watcher.py")
+    except Exception as e: tg(f"[HATA watcher] {e}")
 
 if __name__=="__main__":
-    tg("[BOT] Final AI bot başladı.")
-    schedule.every(30).minutes.do(cycle_analysis)
-    schedule.every(4).hours.do(cycle_training)
-    schedule.every(5).minutes.do(cycle_watcher)
+    tg("[BOT] v2 başladı.")
+    schedule.every(30).minutes.do(analysis)
+    schedule.every(4).hours.do(training)
+    schedule.every(5).minutes.do(watcher)
     while True:
         schedule.run_pending()
         time.sleep(1)
