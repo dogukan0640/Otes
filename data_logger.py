@@ -1,31 +1,19 @@
-import pandas as pd
-import os
-from datetime import datetime
+import pandas as pd, os, numpy as np
+LOG_FILE = "signals.csv"
 
-def log_signal(data_dict):
-    log_file = "signals.csv"
-    new_entry = pd.DataFrame([data_dict])
-
-    if os.path.exists(log_file):
-        existing = pd.read_csv(log_file)
-        updated = pd.concat([existing, new_entry], ignore_index=True)
+def log_signal(d: dict):
+    new = pd.DataFrame([d])
+    # sütunlar kesin dursun
+    cols = ["timestamp","signal_id","symbol","interval","rsi","atr",
+            "trend_direction","entry_price","tp","sl",
+            "confidence_score","result"]
+    if "result" not in new.columns:
+        new["result"] = np.nan                         # her eklemede garanti
+    if os.path.exists(LOG_FILE):
+        df = pd.read_csv(LOG_FILE)
+        if "result" not in df.columns:                 # eski csv’de yoksa ekle
+            df["result"] = np.nan
+        df = pd.concat([df, new], ignore_index=True)
     else:
-        updated = new_entry
-
-    updated.to_csv(log_file, index=False)
-    print(f"Sinyal loglandı: {data_dict['symbol']} - {data_dict['interval']}")
-
-if __name__ == "__main__":
-    sample_signal = {
-        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
-        "symbol": "BTCUSDT",
-        "interval": "15m",
-        "rsi": 42.7,
-        "atr": 80.5,
-        "trend_direction": "up",
-        "entry_price": 65000.0,
-        "tp": 66000.0,
-        "sl": 64500.0,
-        "confidence_score": 76.5
-    }
-    log_signal(sample_signal)
+        df = new[cols]                                 # ilk kez oluştururken
+    df.to_csv(LOG_FILE, index=False)
