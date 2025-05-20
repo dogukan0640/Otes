@@ -1,19 +1,23 @@
-import pandas as pd, os, numpy as np
+
+import pandas as pd, numpy as np, os
+
 LOG_FILE = "signals.csv"
+COLS = ["timestamp","signal_id","symbol","interval",
+        "rsi","atr","trend_direction",
+        "entry_price","tp","sl",
+        "confidence_score","result"]
 
 def log_signal(d: dict):
     new = pd.DataFrame([d])
-    # sütunlar kesin dursun
-    cols = ["timestamp","signal_id","symbol","interval","rsi","atr",
-            "trend_direction","entry_price","tp","sl",
-            "confidence_score","result"]
-    if "result" not in new.columns:
-        new["result"] = np.nan                         # her eklemede garanti
+    for col in COLS:
+        if col not in new.columns:
+            new[col] = np.nan
     if os.path.exists(LOG_FILE):
         df = pd.read_csv(LOG_FILE)
-        if "result" not in df.columns:                 # eski csv’de yoksa ekle
-            df["result"] = np.nan
-        df = pd.concat([df, new], ignore_index=True)
+        for col in COLS:
+            if col not in df.columns:
+                df[col] = np.nan
+        df = pd.concat([df, new[COLS]], ignore_index=True)
     else:
-        df = new[cols]                                 # ilk kez oluştururken
+        df = new[COLS]
     df.to_csv(LOG_FILE, index=False)
